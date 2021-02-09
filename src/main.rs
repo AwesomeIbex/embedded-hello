@@ -13,13 +13,13 @@ use stm32f4xx_hal::gpio::Speed; // When a panic occurs, stop the microcontroller
 #[entry]
 fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
-    let mut dp = Peripherals::take().unwrap();
+    let dp = Peripherals::take().unwrap();
 
     let mut gpioc = dp.GPIOC.split();
     let mut led = gpioc.pc13.into_push_pull_output();
 
     let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.sysclk(58.mhz()).freeze();
+    let clocks = rcc.cfgr.sysclk(48.mhz()).freeze();
 
     let mut delay = Delay::new(cp.SYST, clocks);
     loop {
