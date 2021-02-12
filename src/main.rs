@@ -43,24 +43,22 @@ fn main() -> ! {
     let adc = Adc::adc1(dp.ADC1, true, adcconfig);
 
     let gpioa = dp.GPIOA.split();
-    let joystick_x = gpioa.pa0.into_analog();
+    let mut joystick_x = gpioa.pa0.into_analog();
     let joystick_y = gpioa.pa1.into_analog();
 
     free(|cs| {
         *GADC.borrow(cs).borrow_mut() = Some(adc);
-        *JOYSTICK_X.borrow(cs).borrow_mut() = Some(joystick_x);
-        *JOYSTICK_Y.borrow(cs).borrow_mut() = Some(joystick_y);
+        // *JOYSTICK_X.borrow(cs).borrow_mut() = Some(joystick_x);
+        // *JOYSTICK_Y.borrow(cs).borrow_mut() = Some(joystick_y);
     });
 
     let mut delay_time = 500_u32;
     loop {
         free(|cs| {
-            if let (Some(ref mut adc), Some(ref mut x), Some(ref mut _y)) = (
-                GADC.borrow(cs).borrow_mut().deref_mut(),
-                JOYSTICK_X.borrow(cs).borrow_mut().deref_mut(),
-                JOYSTICK_Y.borrow(cs).borrow_mut().deref_mut()) {
-                if adc.convert(x, SampleTime::Cycles_480) > 0 as u16 {
-                    delay_time = (delay_time * 2) as u32
+            if let Some(ref mut adc) = GADC.borrow(cs).borrow_mut().deref_mut() {
+                let result = adc.read(&mut joystick_x).unwrap();
+                if result.is_power_of_two() {
+                    delay_time = (delay_time - 50) as u32
                 }
             }
         });
@@ -70,13 +68,13 @@ fn main() -> ! {
         led.set_low().unwrap();
         delay.delay_ms(delay_time);
 
-        free(|cs| {
-            let gpioa = dp.GPIOA.split();
-            let joystick_x = gpioa.pa0.into_analog();
-            let joystick_y = gpioa.pa1.into_analog();
-
-            JOYSTICK_X.borrow(cs).replace(Some(joystick_x));
-            JOYSTICK_Y.borrow(cs).replace(Some(joystick_y));
-        });
+        // free(|cs| {
+        //     let gpioa = dp.GPIOA.split();
+        //     let joystick_x = gpioa.pa0.into_analog();
+        //     let joystick_y = gpioa.pa1.into_analog();
+        //
+        //     JOYSTICK_X.borrow(cs).replace(Some(joystick_x));
+        //     JOYSTICK_Y.borrow(cs).replace(Some(joystick_y));
+        // });
     }
 }
