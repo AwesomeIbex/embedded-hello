@@ -57,11 +57,6 @@ fn main() -> ! {
                 let x: u32 = adc.read(&mut joystick_x).unwrap() as u32;
                 let y: u32 = adc.read(&mut joystick_y).unwrap() as u32;
 
-                if y > 4000 {
-                    led.set_low();
-                } else {
-                    led.set_high();
-                }
                 if y > MAX_RANGE {
                     delay_time = (delay_time + 50) as u32
                 } else if y < LOWEST_RANGE {
