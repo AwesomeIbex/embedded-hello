@@ -12,13 +12,12 @@ use panic_halt;
 use stm32f4xx_hal::{delay::Delay, prelude::*, stm32};
 use stm32f4xx_hal::adc::Adc;
 use stm32f4xx_hal::adc::config::{AdcConfig, Resolution, SampleTime};
-use stm32f4xx_hal::gpio::{Analog, Speed};
+use stm32f4xx_hal::gpio::{Analog, Speed, Output, PushPull};
 use stm32f4xx_hal::gpio::gpioa::{PA0, PA1};
-use stm32f4xx_hal::stm32::Peripherals;
-
-// STM32F1 specific functions
-
-// When a panic occurs, stop the microcontroller
+use stm32f4xx_hal::stm32::{Peripherals, ADC1, GPIOA, GPIOC, RCC};
+use stm32f4xx_hal::gpio::gpioc::PC13;
+use stm32f4xx_hal::time::MegaHertz;
+use stm32f4xx_hal::rcc::{Clocks, Rcc};
 
 static GADC: Mutex<RefCell<Option<Adc<stm32::ADC1>>>> = Mutex::new(RefCell::new(None));
 const MIDDLE_RANGE: u32 = 512;
@@ -27,17 +26,14 @@ const LOWEST_RANGE: u32 = 100;
 
 #[entry]
 fn main() -> ! {
-    let hertz = 48.mhz();
+    let hertz = 48;
 
-    let cp = cortex_m::Peripherals::take().unwrap();
-    let dp = Peripherals::take().unwrap();
-    let gpioc = dp.GPIOC.split();
+    let (cp, dp) = get_peripherals();
     let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.sysclk(hertz).freeze();
+    let clocks = rcc.cfgr.sysclk(hertz.mhz()).freeze();
 
+    let gpioc = dp.GPIOC.split();
     let mut led = gpioc.pc13.into_push_pull_output();
-
-    let mut delay = Delay::new(cp.SYST, clocks);
 
     let adcconfig = AdcConfig::default();
     let adc = Adc::adc1(dp.ADC1, true, adcconfig);
@@ -50,6 +46,7 @@ fn main() -> ! {
         *GADC.borrow(cs).borrow_mut() = Some(adc);
     });
 
+    let mut delay = Delay::new(cp.SYST, clocks);
     let mut delay_time = 500_u32;
     loop {
         free(|cs| {
@@ -75,4 +72,10 @@ fn main() -> ! {
         led.set_low().unwrap();
         delay.delay_ms(delay_time);
     }
+}
+
+fn get_peripherals() -> (cortex_m::Peripherals, Peripherals) {
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let dp = Peripherals::take().unwrap();
+    (cp, dp)
 }
